@@ -4,8 +4,8 @@
 #include <px4_msgs/msg/vehicle_command.hpp>
 #include <px4_msgs/msg/vehicle_control_mode.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include "my_tests/OffboardControl.hpp"
-#include "my_tests/jsp.hpp"
+#include "my_px4_tutorial/OffboardControl.hpp"
+#include "my_px4_tutorial/jsp.hpp"
 
 
 #include <chrono>

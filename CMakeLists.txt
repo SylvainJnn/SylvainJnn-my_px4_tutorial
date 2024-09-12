@@ -29,10 +29,61 @@ find_package(std_srvs REQUIRED)
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 
+# Define the include directories for all targets
+include_directories(include)
+
+# Créer la bibliothèque pour OffboardControl
+add_library(OffboardControl_lib
+  src/OffboardControl.cpp
+)
+# Lier les bibliothèques nécessaires à la bibliothèque OffboardControl_lib
+ament_target_dependencies(OffboardControl_lib
+  rclcpp
+  px4_msgs
+)
+
 # Add executable for test_offboard
 add_executable(test_offboard src/test_offboard.cpp)
 ament_target_dependencies(test_offboard rclcpp px4_msgs std_srvs)
-install(TARGETS test_offboard DESTINATION lib/${PROJECT_NAME})
+# install(TARGETS test_offboard DESTINATION lib/${PROJECT_NAME})
+
+
+# # plus besoin car il n'y a pas de main ? 
+# # Add executable for OffboardControl
+# add_executable(OffboardControl src/OffboardControl.cpp)
+# ament_target_dependencies(OffboardControl rclcpp px4_msgs)
+# install(TARGETS OffboardControl DESTINATION lib/${PROJECT_NAME})
+
+
+
+# Add executable for jsp
+add_executable(jsp src/jsp.cpp)
+# Lier la bibliothèque OffboardControl_lib à l'exécutable jsp_node
+target_link_libraries(jsp
+  OffboardControl_lib
+)
+ament_target_dependencies(jsp rclcpp px4_msgs)
+# install(TARGETS jsp DESTINATION lib/${PROJECT_NAME}) // elle y est en double non ? 
+
+
+# Installer les fichiers d'en-tête et la bibliothèque
+install(TARGETS
+  test_offboard
+  OffboardControl_lib
+  jsp
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+# je sais pas non plus 
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION include/${PROJECT_NAME}
+)
+
+
+
+# Install targets
+# install(TARGETS test_offboard DESTINATION lib/${PROJECT_NAME})
+
 
 
 if(BUILD_TESTING)

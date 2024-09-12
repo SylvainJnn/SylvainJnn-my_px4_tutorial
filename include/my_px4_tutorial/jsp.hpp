@@ -1,13 +1,10 @@
 #ifndef JSP_HPP
 #define JSP_HPP
 
-// ? 
 #include <stdint.h>
-#include <px4_msgs/msg/offboard_control_mode.hpp>
-#include <px4_msgs/msg/trajectory_setpoint.hpp>
-#include <px4_msgs/msg/vehicle_command.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include "OffboardControl.hpp"
+#include "my_px4_tutorial/OffboardControl.hpp"
+#include "my_px4_tutorial/jsp.hpp"
 
 using namespace px4_msgs::msg;
 
