@@ -131,6 +131,7 @@ void OffboardControl::disarm()
  */
 void OffboardControl::publish_trajectory_setpoint(float x, float y, float z, float yaw)
 {
+	std::cout << "je suis dedasn\n";
 	TrajectorySetpoint msg{};
 	msg.position = {x, y, z};
 	msg.yaw = yaw; // [-PI:PI]
