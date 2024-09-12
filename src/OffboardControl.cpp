@@ -15,36 +15,6 @@ using namespace std::chrono;
 using namespace std::chrono_literals;
 using namespace px4_msgs::msg;
 
-// class OffboardControl : public rclcpp::Node
-// {
-// public:
-// 	OffboardControl() : Node("offboard_control_node")
-// 	{
-// 		// publishers
-// 		// publish the control mode : position or speed
-// 		offboard_control_mode_publisher_ = this->create_publisher<OffboardControlMode>("/fmu/in/offboard_control_mode", 10);
-// 		// publish specific commands like arm or disarm
-// 		vehicle_command_publishe	r_ = this->create_publisher<VehicleCommand>("/fmu/in/vehicle_command", 10);
-// 		// publish a position to reach
-// 		trajectory_setpoint_publisher_ = this->create_publisher<TrajectorySetpoint>("/fmu/in/trajectory_setpoint", 10);
-
-// 		Takeoff();
-
-// 	}
-
-// 	void arm();
-// 	void disarm();
-
-// private:
-// 	rclcpp::Publisher<OffboardControlMode>::SharedPtr offboard_control_mode_publisher_;
-// 	rclcpp::Publisher<VehicleCommand>::SharedPtr vehicle_command_publisher_;
-// 	rclcpp::Publisher<TrajectorySetpoint>::SharedPtr trajectory_setpoint_publisher_;
-
-// 	void publish_offboard_control_mode(bool position, bool speed);
-// 	void publish_vehicle_command(uint16_t command, float param1 = 0.0, float param2 = 0.0);
-
-// 	void publish_trajectory_setpoint(float x, float y, float z, float yaw);
-// };
 
 OffboardControl::OffboardControl() : Node("offboard_control_node")
 {
@@ -55,8 +25,6 @@ OffboardControl::OffboardControl() : Node("offboard_control_node")
 	vehicle_command_publisher_ = this->create_publisher<VehicleCommand>("/fmu/in/vehicle_command", 10);
 	// publish a position to reach
 	trajectory_setpoint_publisher_ = this->create_publisher<TrajectorySetpoint>("/fmu/in/trajectory_setpoint", 10);
-
-	// Takeoff();
 
 }
 
@@ -131,23 +99,10 @@ void OffboardControl::disarm()
  */
 void OffboardControl::publish_trajectory_setpoint(float x, float y, float z, float yaw)
 {
-	std::cout << "je suis dedasn\n";
+	// std::cout << "je suis dedasn\n";
 	TrajectorySetpoint msg{};
 	msg.position = {x, y, z};
 	msg.yaw = yaw; // [-PI:PI]
 	msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
 	trajectory_setpoint_publisher_->publish(msg);
 }
-
-
-// on se s'en servira probablement plus donc à delete
-// int main(int argc, char *argv[])
-// {
-// 	std::cout << "Starting offboard control node" << std::endl;
-// 	rclcpp::init(argc, argv);
-// 	auto offboard_control_node = std::make_shared<OffboardControl>();
-// 	rclcpp::spin(offboard_control_node);
-
-// 	// rclcpp::shutdown();
-// 	return 0;
-// }
