@@ -16,23 +16,9 @@ using namespace std::chrono;
 using namespace std::chrono_literals;
 using namespace px4_msgs::msg;
 
-// class jsp : public rclcpp::Node
-// {
-// public:
-// 	jsp() : Node("jsp")
-// 	{
-//         Takeoff();
-//     }
-
-
-// private:
-//     void Takeoff();
-// 	// variable offboartd control
-// };
-
 jsp::jsp() : Node("jsp_node")
 {
-    //Takeoff();
+    Takeoff();
 }
 
 /**
@@ -45,9 +31,10 @@ void jsp::Takeoff()
 
 
 	// Arm the vehicle
-	// this->arm(); // when in the same node 
-	// my_offboard.arm();// tester avec et sans!! 
-	my_offboard.publish_offboard_control_mode(false, true); 
+	my_offboard.arm();
+
+	// control the drone on position
+	my_offboard.publish_offboard_control_mode(true, false); 
 
 	auto start_time = this->get_clock()->now().nanoseconds() / 1000000;
 	int flag = 1;
