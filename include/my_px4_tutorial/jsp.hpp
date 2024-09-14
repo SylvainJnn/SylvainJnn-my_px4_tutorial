@@ -2,6 +2,10 @@
 #define JSP_HPP
 
 #include <stdint.h>
+#include <px4_msgs/msg/offboard_control_mode.hpp>
+#include <px4_msgs/msg/trajectory_setpoint.hpp>
+#include <px4_msgs/msg/vehicle_command.hpp>
+#include <px4_msgs/msg/vehicle_control_mode.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include "my_px4_tutorial/OffboardControl.hpp"
 #include "my_px4_tutorial/jsp.hpp"
@@ -12,14 +16,18 @@ class jsp : public rclcpp::Node
 {
 public:
     jsp();
-    void Takeoff();
+    void setup(OffboardControl& controller);
+    void take_off(OffboardControl& controller);
 
 private:
-    // OffboardControl my_offboard;
+    OffboardControl _controller; 
+    
     // Publishers
-	rclcpp::Publisher<OffboardControlMode>::SharedPtr offboard_control_mode_publisher_;
-	rclcpp::Publisher<VehicleCommand>::SharedPtr vehicle_command_publisher_;
-	rclcpp::Publisher<TrajectorySetpoint>::SharedPtr trajectory_setpoint_publisher_;
+	// rclcpp::Publisher<OffboardControlMode>::SharedPtr offboard_control_mode_publisher_;
+	// rclcpp::Publisher<VehicleCommand>::SharedPtr vehicle_command_publisher_;
+	// rclcpp::Publisher<TrajectorySetpoint>::SharedPtr trajectory_setpoint_publisher_;
+
+
 
     // // Function to publish offboard control mode
     // void publish_offboard_control_mode(bool position, bool speed);

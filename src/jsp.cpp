@@ -18,23 +18,29 @@ using namespace px4_msgs::msg;
 
 jsp::jsp() : Node("jsp_node")
 {
-    Takeoff();
+	setup(_controller);
+    take_off(_controller);
 }
 
 /**
  * @brief simple takeoff -> drone arms, takes off for 7 secondes and then disarms 
 */
-void jsp::Takeoff()
+void jsp::setup(OffboardControl& controller) // mettre const pour protéger ? 
 {
-    OffboardControl my_offboard;
-    my_offboard.publish_vehicle_command(VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 6);
-
-
+	controller.publish_vehicle_command(VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 6);
+	
 	// Arm the vehicle
-	my_offboard.arm();
+	controller.arm();
+}
 
+
+/**
+ * @brief simple takeoff -> drone arms, takes off for 7 secondes and then disarms 
+*/
+void jsp::take_off(OffboardControl& controller)
+{
 	// control the drone on position
-	my_offboard.publish_offboard_control_mode(true, false); 
+	controller.publish_offboard_control_mode(true, false); 
 
 	auto start_time = this->get_clock()->now().nanoseconds() / 1000000;
 	int flag = 1;
@@ -44,13 +50,13 @@ void jsp::Takeoff()
 		auto elapsed_time = current_time - start_time;
 		if(elapsed_time < 10000) 
 		{
-			my_offboard.publish_trajectory_setpoint(0.0, 0.0, -7.0, -3.14);
+			controller.publish_trajectory_setpoint(0.0, 0.0, -7.0, -3.14);
 		}
 		else
 		{
 			flag = 0;
 			// RCLCPP_INFO(this->get_logger(), "Sutdowning");
-			my_offboard.disarm();
+			controller.disarm();
 			// find a way to stop it 
 		}
 
@@ -58,6 +64,13 @@ void jsp::Takeoff()
 	}
 }
 
+// /**
+//  * @brief @todo
+// */
+// void jsp::Sqaure()
+// {
+// 	// @todo
+// }
 
 int main(int argc, char *argv[])
 {

@@ -58,35 +58,43 @@ public:
 		// 	}
 		// };
 		// timer_ = this->create_wall_timer(100ms, timer_callback);
-		publish_offboard_control_mode(false, true); 
-        publish_trajectory_setpoint(0.0, 0.0, -5.0); // parfois il faut parfois non ???? je comprenss vraiment pas pk, go retester une autre fois
-		theta = 0;
-		omega = 0.5;
-		dt = 0.02; // timer 20ms !!!
-		radius = 10;
-		
-		this->publish_vehicle_command(VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 6);
+		if(0)
+		{
+			publish_offboard_control_mode(false, true); 
+			publish_trajectory_setpoint(0.0, 0.0, -5.0); // parfois il faut parfois non ???? je comprenss vraiment pas pk, go retester une autre fois
+			theta = 0;
+			omega = 0.5;
+			dt = 0.02; // timer 20ms !!!
+			radius = 10;
+			
+			this->publish_vehicle_command(VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 6);
 
-		// Arm the vehicle
-		this->arm();
-        offboard_setpoint_counter_ = 0;
-        // publish_offboard_control_mode();
-		// publish_trajectory_setpoint(0.0, 0.0, -5.0);
-        RCLCPP_INFO(this->get_logger(), "la on pub une fois avant, pk ???? -- SANS SHUTDOWN");
-        auto timer_callback = [this]() -> void { // put that in a different fucntion
-        {
-             test_pos();
-		//	circle();
-            offboard_setpoint_counter_++;
-        }
+			// Arm the vehicle
+			this->arm();
+			offboard_setpoint_counter_ = 0;
+			// publish_offboard_control_mode();
+			// publish_trajectory_setpoint(0.0, 0.0, -5.0);
+			RCLCPP_INFO(this->get_logger(), "la on pub une fois avant, pk ???? -- SANS SHUTDOWN");
+			auto timer_callback = [this]() -> void { // put that in a different fucntion
+			{
+				test_pos();
+			//	circle();
+				offboard_setpoint_counter_++;
+			}
 
 
-		};
-		timer_ = this->create_wall_timer(20ms, timer_callback);
+			};
+			timer_ = this->create_wall_timer(20ms, timer_callback);
+		}	
+		else
+		{
+			// Takeoff0();
+		}
 	}
 
 	void arm();
 	void disarm();
+	// void Takeoff0();
 
 
 private:
@@ -303,6 +311,7 @@ void OffboardControl::circle()
 							 new_y,
 							 new_z);
 }
+
 
 
 int main(int argc, char *argv[])
