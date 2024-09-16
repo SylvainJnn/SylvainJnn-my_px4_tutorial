@@ -21,7 +21,7 @@ jsp::jsp() : Node("jsp_node")
 	std::cout << "DEBUT NODE  " << std::endl;
 
 	rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
-	auto qos = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 100), qos_profile); // originalement 5
+	auto qos = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 5), qos_profile); // originalement 5
 
 	// // auto subscription_ = this->create_subscription<px4_msgs::msg::SensorCombined>("/fmu/out/sensor_combined", qos,
 
@@ -118,37 +118,37 @@ void jsp::square_hardcoded(OffboardControl& controller)
 
 		if(elapsed_time  < 2000)
 		{
-			// RCLCPP_INFO(this->get_logger(), "position 0");
+			RCLCPP_INFO(this->get_logger(), "position 0");
 			controller.publish_trajectory_setpoint(0.0, 0.0, -3.0, -3.14);
 		}
 			
 		else if(elapsed_time  < 2*period)
 		{
-			// RCLCPP_INFO(this->get_logger(), "position 1");
+			RCLCPP_INFO(this->get_logger(), "position 1");
 			controller.publish_trajectory_setpoint(3.0, 0.0, -6.0, -3.14);
 		}
 		
 		else if(elapsed_time  < 3*period)
 		{
-			// RCLCPP_INFO(this->get_logger(), "position 2");
+			RCLCPP_INFO(this->get_logger(), "position 2");
 			controller.publish_trajectory_setpoint(0.0, 3.0, -8.0, -3.14);
 		}
 		
 		else if(elapsed_time  < 4*period)
 		{
-			// RCLCPP_INFO(this->get_logger(), "position 3");
+			RCLCPP_INFO(this->get_logger(), "position 3");
 			controller.publish_trajectory_setpoint(-3.0, 0.0, -9.0, -3.14);
 		}
 
 		else if(elapsed_time  < 5*period)
 		{
-			// RCLCPP_INFO(this->get_logger(), "position 4");
+			RCLCPP_INFO(this->get_logger(), "position 4");
 			controller.publish_trajectory_setpoint(0.0, -3.0, -9.0, -3.14);
 		}
 
 		else if(elapsed_time  < 6*period)
 		{
-			// RCLCPP_INFO(this->get_logger(), "position 0 again");
+			RCLCPP_INFO(this->get_logger(), "position 0 again");
 			controller.publish_trajectory_setpoint(0.0, 0.0, -3.0, -3.14);
 		}
 		else
@@ -157,6 +157,7 @@ void jsp::square_hardcoded(OffboardControl& controller)
 			controller.disarm();
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		rclcpp::spin_some(this->get_node_base_interface()); // ça marche mais ce serait bien de trouver une autre option
 	}
 }
 
@@ -188,10 +189,15 @@ int main(int argc, char *argv[])
 // keep_last , keep_all ? 
 
 /*
-	thread
+	THREAD
+
+	pour résoudre problème
+	- rclcpp::executors::MultiThreadedExecutor.
+	- Async ? 
+	- Qos
 
 
-
+	a faire
 	destructeur
 	~MyNode()
     {
