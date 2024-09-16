@@ -307,10 +307,36 @@ void OffboardControl::circle()
 	new_x = radius * cos(theta); // radius 
 	new_y = radius * sin(theta); 
 	new_z = -5.0;
-	publish_trajectory_speed(new_x,
+	// SPEED
+	publish_trajectory_speed(new_x, 
 							 new_y,
 							 new_z);
 }
+// void jsp::circle(OffboardControl& controller) -> à faire sur la vitesse !
+// {
+// 	controller.publish_offboard_control_mode(true, false);
+	
+// 	float new_x, new_y, new_z, radius, theta, omega;
+
+// 	radius = 5;
+// 	theta = 0;
+// 	omega = 0.05;
+// 	rclcpp::Rate rate(20);  // 20 Hz
+// 	while(1)
+// 	{
+// 		theta = theta + omega;
+// 		new_x = radius * cos(theta); 
+// 		new_y = radius * sin(theta); 
+// 		new_z = -5.0;
+
+// 		controller.publish_trajectory_setpoint(new_x,
+// 											   new_y,
+// 											   new_z,
+// 											   -3.14);
+// 	rate.sleep();
+// 	}
+
+// }
 
 
 

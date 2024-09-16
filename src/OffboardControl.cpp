@@ -25,7 +25,6 @@ OffboardControl::OffboardControl() : Node("offboard_control_node")
 	vehicle_command_publisher_ = this->create_publisher<VehicleCommand>("/fmu/in/vehicle_command", 10);
 	// publish a position to reach
 	trajectory_setpoint_publisher_ = this->create_publisher<TrajectorySetpoint>("/fmu/in/trajectory_setpoint", 10);
-
 }
 
 /**
