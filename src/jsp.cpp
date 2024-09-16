@@ -1,8 +1,4 @@
 #include <stdint.h>
-// #include <px4_msgs/msg/offboard_control_mode.hpp>
-// #include <px4_msgs/msg/trajectory_setpoint.hpp>
-// #include <px4_msgs/msg/vehicle_command.hpp> // nécéssare pour arm
-// #include <px4_msgs/msg/vehicle_control_mode.hpp>
 #include <rclcpp/rclcpp.hpp>
 
 // Messages
@@ -12,14 +8,13 @@
 #include "my_px4_tutorial/OffboardControl.hpp"
 #include "my_px4_tutorial/jsp.hpp"
 
-
+#include <thread>
 #include <chrono>
 #include <iostream>
 #include <cmath>
 
 using namespace std::chrono;
 using namespace std::chrono_literals;
-// using namespace px4_msgs::msg; // faire sans !!!
 
 jsp::jsp() : Node("jsp_node")
 {
@@ -37,11 +32,12 @@ jsp::jsp() : Node("jsp_node")
 				  this,
 		          std::placeholders::_1));
 
-	// timer_ = this->create_wall_timer(
-    //         std::chrono::milliseconds(500),
-    //         std::bind(&MyNode::timer_callback, this));
-
 	setup(_controller);
+
+	std::thread first_thread_ = std::thread(&jsp::square_hardcoded, this, std::ref(_controller)); // put the functions argument after this
+
+	first_thread_.join(); // SANS ça ça ne peut pas
+
 	// square_hardcoded(_controller);
     // circle(_controller);
 }
@@ -97,8 +93,6 @@ void jsp::take_off(OffboardControl& controller)
 			controller.disarm();
 			// find a way to stop it 
 		}
-
-		//std::this_thread::sleep_for(std::chrono::milliseconds(10)); 
 	}
 }
 
@@ -107,68 +101,64 @@ void jsp::take_off(OffboardControl& controller)
 */
 void jsp::square_hardcoded(OffboardControl& controller)
 {
+	RCLCPP_INFO(this->get_logger(), "INSIDE");
 	int flag = 1;
 	auto start_time = this->get_clock()->now().nanoseconds() / 1000000;
 	int period = 5000;
 	
 	while(flag)
 	{
+		RCLCPP_INFO(this->get_logger(), "inside the loop");
 		auto current_time = this->get_clock()->now().nanoseconds() / 1000000;
 		auto elapsed_time = current_time - start_time;
 
 		// control the drone on position
-		controller.publish_offboard_control_mode(true, false);
+		controller.publish_offboard_control_mode(true, false); // must be published regulary
+	
+
+		if(elapsed_time  < 2000)
+		{
+			// RCLCPP_INFO(this->get_logger(), "position 0");
+			controller.publish_trajectory_setpoint(0.0, 0.0, -3.0, -3.14);
+		}
+			
+		else if(elapsed_time  < 2*period)
+		{
+			// RCLCPP_INFO(this->get_logger(), "position 1");
+			controller.publish_trajectory_setpoint(3.0, 0.0, -6.0, -3.14);
+		}
 		
-		if (elapsed_time % 1000 == 0)  // Tick toutes les secondes
-			{
-				// RCLCPP_INFO(this->get_logger(), "tick");
-				// std::cout << "Passed time : " << elapsed_time << " ms" << std::endl;
-			}
+		else if(elapsed_time  < 3*period)
+		{
+			// RCLCPP_INFO(this->get_logger(), "position 2");
+			controller.publish_trajectory_setpoint(0.0, 3.0, -8.0, -3.14);
+		}
+		
+		else if(elapsed_time  < 4*period)
+		{
+			// RCLCPP_INFO(this->get_logger(), "position 3");
+			controller.publish_trajectory_setpoint(-3.0, 0.0, -9.0, -3.14);
+		}
 
-			if(elapsed_time  < 7000)
-			{
-				// RCLCPP_INFO(this->get_logger(), "position 0");
-				controller.publish_trajectory_setpoint(0.0, 0.0, -3.0, -3.14);
-			}
-			
-			else if(elapsed_time  < 2*period)
-			{
-				// RCLCPP_INFO(this->get_logger(), "position 1");
-				controller.publish_trajectory_setpoint(3.0, 0.0, -6.0, -3.14);
-			}
-			
-			else if(elapsed_time  < 3*period)
-			{
-				// RCLCPP_INFO(this->get_logger(), "position 2");
-				controller.publish_trajectory_setpoint(0.0, 3.0, -8.0, -3.14);
-			}
-			
-			else if(elapsed_time  < 4*period)
-			{
-				// RCLCPP_INFO(this->get_logger(), "position 3");
-				controller.publish_trajectory_setpoint(-3.0, 0.0, -9.0, -3.14);
-			}
+		else if(elapsed_time  < 5*period)
+		{
+			// RCLCPP_INFO(this->get_logger(), "position 4");
+			controller.publish_trajectory_setpoint(0.0, -3.0, -9.0, -3.14);
+		}
 
-			else if(elapsed_time  < 5*period)
-			{
-				// RCLCPP_INFO(this->get_logger(), "position 4");
-				controller.publish_trajectory_setpoint(0.0, -3.0, -9.0, -3.14);
-			}
-
-			else if(elapsed_time  < 6*period)
-			{
-				// RCLCPP_INFO(this->get_logger(), "position 0 again");
-				controller.publish_trajectory_setpoint(0.0, 0.0, -3.0, -3.14);
-			}
-			else
-			{
-				flag = 0;
-				// controller.disarm();
-			}
+		else if(elapsed_time  < 6*period)
+		{
+			// RCLCPP_INFO(this->get_logger(), "position 0 again");
+			controller.publish_trajectory_setpoint(0.0, 0.0, -3.0, -3.14);
+		}
+		else
+		{
+			flag = 0;
+			controller.disarm();
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	}
 }
-
-// get current pose
 
 //
 /**
@@ -196,3 +186,17 @@ int main(int argc, char *argv[])
 // COMPNRDRE PK ON reçoit rien dans el sub à certains moment
 // Qos ? 
 // keep_last , keep_all ? 
+
+/*
+	thread
+
+
+
+	destructeur
+	~MyNode()
+    {
+        if (time_monitor_thread_.joinable()) {
+            time_monitor_thread_.join();  // Attendre la fin du thread
+        }
+
+*/
