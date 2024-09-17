@@ -13,13 +13,15 @@
 #include <iostream>
 #include <cmath>
 
+#include <future> // for std::async
+
 using namespace std::chrono;
 using namespace std::chrono_literals;
 
 jsp::jsp() : Node("jsp_node")
 {
 	std::cout << "DEBUT NODE  " << std::endl;
-
+	value_flag = 0;
 	rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
 	auto qos = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 5), qos_profile); // originalement 5
 
@@ -31,11 +33,15 @@ jsp::jsp() : Node("jsp_node")
 		std::bind(&jsp::vehicle_odometry_callback, 
 				  this,
 		          std::placeholders::_1));
-
+	while(!value_flag)
+	{
+		rclcpp::spin_some(this->get_node_base_interface());
+		std::cout << value_flag<<std::endl;
+	}
+	std::cout << "MAIN DEBUT : " << current_odom_msg->position[0] << std::endl;
 	setup(_controller);
 
-	std::thread first_thread_ = std::thread(&jsp::square_hardcoded, this, std::ref(_controller)); // put the functions argument after this
-
+	std::thread first_thread_ = std::thread(&jsp::square_2, this, std::ref(_controller)); // put the functions argument after this
 	first_thread_.join(); // SANS ça ça ne peut pas
 
 	// square_hardcoded(_controller);
@@ -48,12 +54,13 @@ jsp::jsp() : Node("jsp_node")
 
 void jsp::vehicle_odometry_callback(const px4_msgs::msg::VehicleOdometry::SharedPtr odom_msg)
 {
-	px4_msgs::msg::VehicleOdometry::SharedPtr current_msg{};
-	current_msg = odom_msg;
+	// px4_msgs::msg::VehicleOdometry::SharedPtr current_msg{};
+	current_odom_msg = odom_msg;
+	value_flag = 1;
 	std::cout << "POSITION : " << std::endl;
-	std::cout << "x : " << current_msg->position[0] << std::endl;
-	std::cout << "y : " << current_msg->position[1] << std::endl;
-	std::cout << "z : " << current_msg->position[2] << std::endl;
+	std::cout << "x : " << current_odom_msg->position[0] << std::endl;
+	std::cout << "y : " << current_odom_msg->position[1] << std::endl;
+	std::cout << "z : " << current_odom_msg->position[2] << std::endl;
 }
 
 /**
@@ -156,7 +163,76 @@ void jsp::square_hardcoded(OffboardControl& controller)
 			flag = 0;
 			controller.disarm();
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		// std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		// rclcpp::spin_some(this->get_node_base_interface()); // ça marche mais ce serait bien de trouver une autre option
+	}
+}
+
+void jsp::square_2(OffboardControl& controller)
+{
+	RCLCPP_INFO(this->get_logger(), "INSIDE");
+	int flag = 1;
+	auto start_time = this->get_clock()->now().nanoseconds() / 1000000;
+	int period = 5000;
+	int length = 5;
+	px4_msgs::msg::VehicleOdometry::SharedPtr initial_pose = this->current_odom_msg;
+	int x = initial_pose->position[0];
+	int y = initial_pose->position[1];
+
+
+	while(flag)
+	{
+		RCLCPP_INFO(this->get_logger(), "inside the loop");
+		std::cout << "x square2 : " << current_odom_msg->position[0] << std::endl;
+		std::cout << "y square2: " << current_odom_msg->position[1] << std::endl;
+		auto current_time = this->get_clock()->now().nanoseconds() / 1000000;
+		auto elapsed_time = current_time - start_time;
+
+		// control the drone on position
+		controller.publish_offboard_control_mode(true, false); // must be published regulary
+
+
+		if(elapsed_time  < 2000)
+		{
+			RCLCPP_INFO(this->get_logger(), "position 0");
+			controller.publish_trajectory_setpoint(x, y, -3.0, -3.14);
+		}
+			
+		else if(elapsed_time  < 2*period)
+		{
+			RCLCPP_INFO(this->get_logger(), "position 1");
+			controller.publish_trajectory_setpoint(x + length, y, -6.0, -3.14);
+		}
+		
+		else if(elapsed_time  < 3*period)
+		{
+			RCLCPP_INFO(this->get_logger(), "position 2");
+			controller.publish_trajectory_setpoint(x, y + length, -7.0, -3.14);
+		}
+		
+		else if(elapsed_time  < 4*period)
+		{
+			RCLCPP_INFO(this->get_logger(), "position 3");
+			controller.publish_trajectory_setpoint(x - length, y, -3.0, -3.14);
+		}
+
+		else if(elapsed_time  < 5*period)
+		{
+			RCLCPP_INFO(this->get_logger(), "position 4");
+			controller.publish_trajectory_setpoint(x, y - length, -3.0, -3.14);
+		}
+
+		else if(elapsed_time  < 6*period)
+		{
+			RCLCPP_INFO(this->get_logger(), "position 0 again");
+			controller.publish_trajectory_setpoint(x, y, -3.0, -3.14);
+		}
+		else
+		{
+			flag = 0;
+			controller.disarm();
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		rclcpp::spin_some(this->get_node_base_interface()); // ça marche mais ce serait bien de trouver une autre option
 	}
 }
@@ -195,6 +271,12 @@ int main(int argc, char *argv[])
 	- rclcpp::executors::MultiThreadedExecutor.
 	- Async ? 
 	- Qos
+
+
+--> std::future<void> future = std::async(std::launch::async, &jsp::square_hardcoded, this, std::ref(_controller));
+	
+	// Attendez que la t%C3%A2che asynchrone soit termine si nessaire
+	future.get();  // Cela bloque jusqu'%C3%A0 ce que square_hardcoded se termine
 
 
 	a faire
