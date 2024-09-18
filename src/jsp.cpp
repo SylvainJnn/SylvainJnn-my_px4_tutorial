@@ -13,7 +13,6 @@
 #include <iostream>
 #include <cmath>
 
-#include <future> // for std::async
 
 using namespace std::chrono;
 using namespace std::chrono_literals;
@@ -21,11 +20,11 @@ using namespace std::chrono_literals;
 jsp::jsp() : Node("jsp_node")
 {
 	std::cout << "DEBUT NODE  " << std::endl;
-	value_flag = 0;
-	rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
-	auto qos = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 5), qos_profile); // originalement 5
+	flag_odom_sub_ = 0;
 
-	// // auto subscription_ = this->create_subscription<px4_msgs::msg::SensorCombined>("/fmu/out/sensor_combined", qos,
+	// Setup QoS and subscriber
+	rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
+	rclcpp::QoS qos = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 5), qos_profile); // originalement 5
 
 	vehicle_odometry_subscriber_ = this->create_subscription<px4_msgs::msg::VehicleOdometry>(
 		"/fmu/out/vehicle_odometry", 
@@ -33,19 +32,24 @@ jsp::jsp() : Node("jsp_node")
 		std::bind(&jsp::vehicle_odometry_callback, 
 				  this,
 		          std::placeholders::_1));
-	while(!value_flag)
+
+	while(!flag_odom_sub_)
 	{
 		rclcpp::spin_some(this->get_node_base_interface());
-		std::cout << value_flag<<std::endl;
+		std::cout << "No sub yet" <<std::endl;
 	}
-	std::cout << "MAIN DEBUT : " << current_odom_msg->position[0] << std::endl;
+	
 	setup(_controller);
-
 	std::thread first_thread_ = std::thread(&jsp::square_2, this, std::ref(_controller)); // put the functions argument after this
-	first_thread_.join(); // SANS ça ça ne peut pas
+	first_thread_.join(); 
+}
 
-	// square_hardcoded(_controller);
-    // circle(_controller);
+jsp::~jsp()
+{
+	if(first_thread_.joinable()) 
+	{
+        first_thread_.join();  // destroy the thread, it requieres it to work
+    }
 }
 
 // ###################
@@ -54,9 +58,8 @@ jsp::jsp() : Node("jsp_node")
 
 void jsp::vehicle_odometry_callback(const px4_msgs::msg::VehicleOdometry::SharedPtr odom_msg)
 {
-	// px4_msgs::msg::VehicleOdometry::SharedPtr current_msg{};
 	current_odom_msg = odom_msg;
-	value_flag = 1;
+	flag_odom_sub_ = 1;
 	std::cout << "POSITION : " << std::endl;
 	std::cout << "x : " << current_odom_msg->position[0] << std::endl;
 	std::cout << "y : " << current_odom_msg->position[1] << std::endl;
@@ -96,9 +99,8 @@ void jsp::take_off(OffboardControl& controller)
 		else
 		{
 			flag = 0;
-			// RCLCPP_INFO(this->get_logger(), "Sutdowning");
+			RCLCPP_INFO(this->get_logger(), "Sutdowning");
 			controller.disarm();
-			// find a way to stop it 
 		}
 	}
 }
@@ -163,28 +165,29 @@ void jsp::square_hardcoded(OffboardControl& controller)
 			flag = 0;
 			controller.disarm();
 		}
-		// std::this_thread::sleep_for(std::chrono::milliseconds(100));
-		// rclcpp::spin_some(this->get_node_base_interface()); // ça marche mais ce serait bien de trouver une autre option
+		rclcpp::spin_some(this->get_node_base_interface()); // ça marche mais ce serait bien de trouver une autre option
 	}
 }
 
 void jsp::square_2(OffboardControl& controller)
 {
 	RCLCPP_INFO(this->get_logger(), "INSIDE");
-	int flag = 1;
-	auto start_time = this->get_clock()->now().nanoseconds() / 1000000;
+	int square_flag = 1; // if 1 fly, otherwise, disarm
+
+	// prediod for each pose
 	int period = 5000;
+	// lenght of the square
 	int length = 5;
+
+	// get initial pose from subscriber
 	px4_msgs::msg::VehicleOdometry::SharedPtr initial_pose = this->current_odom_msg;
 	int x = initial_pose->position[0];
 	int y = initial_pose->position[1];
 
+	auto start_time = this->get_clock()->now().nanoseconds() / 1000000;
 
-	while(flag)
+	while(square_flag)
 	{
-		RCLCPP_INFO(this->get_logger(), "inside the loop");
-		std::cout << "x square2 : " << current_odom_msg->position[0] << std::endl;
-		std::cout << "y square2: " << current_odom_msg->position[1] << std::endl;
 		auto current_time = this->get_clock()->now().nanoseconds() / 1000000;
 		auto elapsed_time = current_time - start_time;
 
@@ -229,7 +232,7 @@ void jsp::square_2(OffboardControl& controller)
 		}
 		else
 		{
-			flag = 0;
+			square_flag = 0;
 			controller.disarm();
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -248,43 +251,6 @@ int main(int argc, char *argv[])
 	std::cout << "Starting jsp node" << std::endl;
 	rclcpp::init(argc, argv);
 	rclcpp::spin(std::make_shared<jsp>());
-
 	// rclcpp::shutdown();
 	return 0;
 }
-
-
-/* le dernier commit y'a pas le sqaure masi trkl, pour prochaine fois:m
- - faire un sub de odom
- - update le quare pour plus que ce soit hardcoded (on le fait autour d'odom)
-*/
-
-
-// COMPNRDRE PK ON reçoit rien dans el sub à certains moment
-// Qos ? 
-// keep_last , keep_all ? 
-
-/*
-	THREAD
-
-	pour résoudre problème
-	- rclcpp::executors::MultiThreadedExecutor.
-	- Async ? 
-	- Qos
-
-
---> std::future<void> future = std::async(std::launch::async, &jsp::square_hardcoded, this, std::ref(_controller));
-	
-	// Attendez que la t%C3%A2che asynchrone soit termine si nessaire
-	future.get();  // Cela bloque jusqu'%C3%A0 ce que square_hardcoded se termine
-
-
-	a faire
-	destructeur
-	~MyNode()
-    {
-        if (time_monitor_thread_.joinable()) {
-            time_monitor_thread_.join();  // Attendre la fin du thread
-        }
-
-*/

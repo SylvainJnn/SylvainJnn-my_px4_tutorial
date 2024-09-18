@@ -13,6 +13,7 @@ class jsp : public rclcpp::Node
 {
 public:
     jsp();
+    ~jsp();
 
     void setup(OffboardControl& controller);
     void take_off(OffboardControl& controller);
@@ -32,7 +33,7 @@ private:
 
     std::thread first_thread_;
 
-    int value_flag;
+    int flag_odom_sub_;
 };
 
 #endif // JSP_HPP
