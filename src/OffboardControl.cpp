@@ -27,6 +27,11 @@ OffboardControl::OffboardControl() : Node("offboard_control_node")
 	trajectory_setpoint_publisher_ = this->create_publisher<TrajectorySetpoint>("/fmu/in/trajectory_setpoint", 10);
 }
 
+OffboardControl::~OffboardControl()
+{
+
+}
+
 /**
  * @brief pass to offboard control mode -> able to directly send command using PX4
  * @param position	boolean that indicates if it is controlled using position

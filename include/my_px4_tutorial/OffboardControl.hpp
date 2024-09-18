@@ -14,7 +14,7 @@ class OffboardControl : public rclcpp::Node
 {
 public:
     OffboardControl();
-    // ~OffboardControl();
+    ~OffboardControl();
     void arm();
     void disarm();
     
