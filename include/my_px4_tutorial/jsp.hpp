@@ -8,6 +8,9 @@
 #include "my_px4_tutorial/jsp.hpp"
 
 // using namespace px4_msgs::msg;
+#include <vector>
+#include <array>
+
 
 class jsp : public rclcpp::Node
 {
@@ -18,7 +21,8 @@ public:
     void setup(OffboardControl& controller);
     void take_off(OffboardControl& controller);
     void square_hardcoded(OffboardControl& controller);
-    void square_2(OffboardControl& controller);
+    void follow_position(OffboardControl& controller, std::vector<std::array<float,3>>& goal_poses);
+    // void go_back(OffboardControl& controller)
     // void circle(OffboardControl& controller);
 
 private:
@@ -32,6 +36,7 @@ private:
     px4_msgs::msg::VehicleOdometry::SharedPtr current_odom_msg{};
 
     std::thread first_thread_;
+    std::thread th_2;
 
     int flag_odom_sub_;
 };
