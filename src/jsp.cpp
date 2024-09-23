@@ -43,10 +43,6 @@ jsp::jsp() : Node("jsp_node")
 
 	setup(_controller);
 
-	// std::vector<std::array<float,3>> goal_poses_;
-	
-
-
 	// std::thread square_thread_ = std::thread(&jsp::square_hardcoded, this, std::ref(_controller));
 	// square_thread_.join();
 	std::thread follow_poses_thread_ = std::thread(&jsp::follow_position, this, std::ref(_controller), std::ref(goal_poses_)); // put the functions argument after this
