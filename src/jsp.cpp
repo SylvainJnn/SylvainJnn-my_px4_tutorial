@@ -38,28 +38,20 @@ jsp::jsp() : Node("jsp_node")
 	while(!flag_odom_sub_)
 	{
 		rclcpp::spin_some(this->get_node_base_interface());
-		RCLCPP_INFO(this->get_logger(), "no sub yet");
+		RCLCPP_INFO(this->get_logger(), "No sub yet");
 	}
 
 	setup(_controller);
 
-	// std::thread square_thread_ = std::thread(&jsp::square_hardcoded, this, std::ref(_controller));
-	// square_thread_.join();
-	std::thread follow_poses_thread_ = std::thread(&jsp::follow_position, this, std::ref(_controller), std::ref(goal_poses_)); // put the functions argument after this
-	follow_poses_thread_.join(); 
+	follow_position(_controller, goal_poses_);
 
-	go_back_thread_ = std::thread(&jsp::go_back, this, std::ref(_controller), std::ref(_initial_pose)); // put the functions argument after this
-	go_back_thread_.join(); 
+	go_back(_controller, _initial_pose);
 
 }
 
 jsp::~jsp()
 {
-	// useless
-	// if(first_thread_.joinable()) 
-	// {
-    //     first_thread_.join();  // destroy the thread, it requieres it to work
-    // }
+	// nothing
 }
 
 // ###################
@@ -207,66 +199,44 @@ void jsp::square_hardcoded(OffboardControl& controller)
 
 void jsp::follow_position(OffboardControl& controller, std::vector<std::array<float,3>>& goal_poses)
 {
-	RCLCPP_INFO(this->get_logger(), "enter follow position");
+	RCLCPP_INFO(this->get_logger(), "Enter follow position");
 
-	std::array<float,3> current_pose, current_goal;
+	std::array<float,3> current_goal;
 	
-	// give first goal to reach
-	current_goal = goal_poses[0];
-	
+	int counter = 1;
 	while(!goal_poses.empty())
 	{
-		// get current position
-		current_pose = {current_odom_msg->position[0],
-						current_odom_msg->position[1],
-						current_odom_msg->position[2]};
+		current_goal = goal_poses[0];
+		std::cout << "Current goal (number " << counter++ << ") :" << current_goal[0] << " " << current_goal[1]<< " " << current_goal[2] << std::endl;
 
-		// control the drone on position
-		controller.publish_offboard_control_mode(true, false); // must be published regulary
-		controller.publish_trajectory_setpoint(current_goal[0],
-											   current_goal[1],
-									    	   current_goal[2],
-											   -3.14); 
+		// call go to pose function in a thread
+		std::thread go_to_pose_thread = std::thread(&jsp::go_to_pose, this, std::ref(controller), std::ref(current_goal));
+		go_to_pose_thread.join(); 
 
-		// check if the goal is reached
-		if(is_goal_reached(current_pose, current_goal, 0.5))
-		{   
-			RCLCPP_INFO(this->get_logger(), "Goal reached");
+		RCLCPP_INFO(this->get_logger(), "New goal set");
+		std::cout << "New goal: "<< current_goal[0] << " " << current_goal[1]<< " " << current_goal[2] << std::endl;
 
-			// delete first goal
-			goal_poses.erase(goal_poses.begin());
-
-			// update goal if there are more
-			if(!goal_poses.empty())
-			{
-				current_goal = goal_poses[0];
-				RCLCPP_INFO(this->get_logger(), "New goal set");
-				std::cout << "New goal: "<< current_goal[0] << " " << current_goal[1]<< " " << current_goal[2] << std::endl;
-			}
-		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
-	    rclcpp::spin_some(this->get_node_base_interface());
+		goal_poses.erase(goal_poses.begin());
+		
     }
-	// change this to call go back function later
-	RCLCPP_INFO(this->get_logger(), "no more goal");
-	// controller.disarm();
+	RCLCPP_INFO(this->get_logger(), "No more goal");
 }
 
 /**
- * @brief go back to initial position // put this in offboard control ? + create a better move to function ? 
+ * @brief makes the drone goes to the given position
 */
-void jsp::go_back(OffboardControl& controller, std::array<float,3> initial_position)
+void jsp::go_to_pose(OffboardControl& controller, std::array<float,3> goal_pose)
 {
 	std::array<float,3> current_pose;
-	initial_position[2] = -5; // set an accesible height position.
 
-	std::cout << initial_position[0] << " " << initial_position[1] << " " << initial_position[2] << std::endl;
+	goal_pose[2] = -5; // set an accesible height position.
+
 	// get current position
 	current_pose = {current_odom_msg->position[0],
 					current_odom_msg->position[1],
 					current_odom_msg->position[2]};
 
-	while(!is_goal_reached(current_pose, initial_position, 0.5))
+	while(!is_goal_reached(current_pose, goal_pose, 0.5))
 	{
 		// get current position
 		current_pose = {current_odom_msg->position[0],
@@ -275,23 +245,39 @@ void jsp::go_back(OffboardControl& controller, std::array<float,3> initial_posit
 
 		// control the drone on position
 		controller.publish_offboard_control_mode(true, false); // must be published regulary
-		controller.publish_trajectory_setpoint(initial_position[0],
-											   initial_position[1],
-									    	   initial_position[2],
+		controller.publish_trajectory_setpoint(goal_pose[0],
+											   goal_pose[1],
+									    	   goal_pose[2],
 											   -3.14); 
-
+		// "wait" for 100ms and make all node spin (update the drones position information)
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		rclcpp::spin_some(this->get_node_base_interface());
 	}
-	RCLCPP_INFO(this->get_logger(), "Back to initial position");
+	RCLCPP_INFO(this->get_logger(), "Goal reached");
+	// controller.disarm();
+}
+
+/**
+ * @brief go back to initial position 
+*/
+void jsp::go_back(OffboardControl& controller, std::array<float,3> home_pose)
+{
+	RCLCPP_INFO(this->get_logger(), "Go back to home position");	
+	
+	// call go to pose function in a thread, 
+	std::thread go_to_pose_thread = std::thread(&jsp::go_to_pose, this, std::ref(controller), std::ref(home_pose));
+	go_to_pose_thread.join(); 
+
+	RCLCPP_INFO(this->get_logger(), "Back to home position");
+
+	// Disarm the drone
 	controller.disarm();
 }
 
-
-
 //
 /**
- * @brief do circle around a position, control in speed
+ * @brief do circle around a position, control in speed // in another function
+ * 
 */
 
 
@@ -307,14 +293,16 @@ int main(int argc, char *argv[])
 
 
 /*
-	vecteur foloow poisiton
-	change jsp to another name
-	handle thread
-	get initial position
-	go back init position
+y	vecteur foloow poisiton
+y	change jsp to another name
+y	handle thread
+y	get initial position
+y	go back init position
 
-	do a go to pose in off baord control 
-	or we do it here, we change or function accordlingly 
-	and we still create go back pose ? 
+	refaire un espèce de go to qui verfie en temps réel si la positions est reached
+		do a go to pose in off baord control 
+		or we do it here, we change or function accordlingly 
+		and we still create go back pose ? 
+	faire le control en vitesse
 
 */

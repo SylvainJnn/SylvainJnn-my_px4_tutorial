@@ -20,7 +20,8 @@ public:
     void take_off(OffboardControl& controller);
     void square_hardcoded(OffboardControl& controller);
     void follow_position(OffboardControl& controller, std::vector<std::array<float,3>>& goal_poses);
-    void go_back(OffboardControl& controller, std::array<float,3> _initial_pose);
+    void go_to_pose(OffboardControl& controller, std::array<float,3> goal_pose);
+    void go_back(OffboardControl& controller, std::array<float,3> home_pose);
     // void circle(OffboardControl& controller);
 
 private:
@@ -36,11 +37,6 @@ private:
     // Subscribers
     rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr vehicle_odometry_subscriber_;
     px4_msgs::msg::VehicleOdometry::SharedPtr current_odom_msg{};
-
-    // threads
-    std::thread square_thread_;
-    std::thread follow_poses_thread_;
-    std::thread go_back_thread_;
 };
 
 #endif // JSP_HPP
