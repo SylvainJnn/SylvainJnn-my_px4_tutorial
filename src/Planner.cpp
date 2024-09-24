@@ -6,7 +6,7 @@
 
 // My includes
 #include "my_px4_tutorial/OffboardControl.hpp"
-#include "my_px4_tutorial/jsp.hpp"
+#include "my_px4_tutorial/Planner.hpp"
 
 #include <thread>
 #include <chrono>
@@ -18,9 +18,9 @@
 using namespace std::chrono;
 using namespace std::chrono_literals;
 
-jsp::jsp() : Node("jsp_node")
+Planner::Planner() : Node("planner_node")
 {
-	std::cout << "DEBUT NODE  " << std::endl;
+	std::cout << "start planner node" << std::endl;
 	flag_odom_sub_ = 0;
 
 	// Setup QoS and subscriber
@@ -30,7 +30,7 @@ jsp::jsp() : Node("jsp_node")
 	vehicle_odometry_subscriber_ = this->create_subscription<px4_msgs::msg::VehicleOdometry>(
 		"/fmu/out/vehicle_odometry", 
 		qos, 
-		std::bind(&jsp::vehicle_odometry_callback, 
+		std::bind(&Planner::vehicle_odometry_callback, 
 				  this,
 		          std::placeholders::_1));
 
@@ -49,7 +49,7 @@ jsp::jsp() : Node("jsp_node")
 
 }
 
-jsp::~jsp()
+Planner::~Planner()
 {
 	// nothing
 }
@@ -58,7 +58,7 @@ jsp::~jsp()
 // ### Subscribers ###
 // ###################
 
-void jsp::vehicle_odometry_callback(const px4_msgs::msg::VehicleOdometry::SharedPtr odom_msg)
+void Planner::vehicle_odometry_callback(const px4_msgs::msg::VehicleOdometry::SharedPtr odom_msg)
 {
 	current_odom_msg = odom_msg;
 	flag_odom_sub_ = 1;
@@ -71,7 +71,7 @@ void jsp::vehicle_odometry_callback(const px4_msgs::msg::VehicleOdometry::Shared
 /**
  * @brief simple takeoff -> drone arms, takes off for 7 secondes and then disarms 
 */
-void jsp::setup(OffboardControl& controller) // mettre const pour protéger ? 
+void Planner::setup(OffboardControl& controller) // mettre const pour protéger ? 
 {
 	_initial_pose = {current_odom_msg->position[0],
 					 current_odom_msg->position[1],
@@ -88,7 +88,7 @@ void jsp::setup(OffboardControl& controller) // mettre const pour protéger ?
 	controller.arm();
 }
 
-bool jsp::is_goal_reached(std::array<float,3> pose, std::array<float,3> goal, float tolerance)
+bool Planner::is_goal_reached(std::array<float,3> pose, std::array<float,3> goal, float tolerance)
 {
 	return((std::abs(pose[0] - goal[0]) <= tolerance) &&
 		   (std::abs(pose[1] - goal[1]) <= tolerance) &&
@@ -98,7 +98,7 @@ bool jsp::is_goal_reached(std::array<float,3> pose, std::array<float,3> goal, fl
 /**
  * @brief simple takeoff -> drone arms, takes off for 7 secondes and then disarms 
 */
-void jsp::take_off(OffboardControl& controller)
+void Planner::take_off(OffboardControl& controller)
 {
 	// control the drone on position
 	controller.publish_offboard_control_mode(true, false); 
@@ -125,7 +125,7 @@ void jsp::take_off(OffboardControl& controller)
 /**
  * @brief do a sware around the global origin. control position
 */
-void jsp::square_hardcoded(OffboardControl& controller)
+void Planner::square_hardcoded(OffboardControl& controller)
 {
 	RCLCPP_INFO(this->get_logger(), "INSIDE");
 	int square_flag = 1; // if 1 fly, otherwise, disarm
@@ -197,7 +197,7 @@ void jsp::square_hardcoded(OffboardControl& controller)
 }
 
 
-void jsp::follow_position(OffboardControl& controller, std::vector<std::array<float,3>>& goal_poses)
+void Planner::follow_position(OffboardControl& controller, std::vector<std::array<float,3>>& goal_poses)
 {
 	RCLCPP_INFO(this->get_logger(), "Enter follow position");
 
@@ -210,7 +210,7 @@ void jsp::follow_position(OffboardControl& controller, std::vector<std::array<fl
 		std::cout << "Current goal (number " << counter++ << ") :" << current_goal[0] << " " << current_goal[1]<< " " << current_goal[2] << std::endl;
 
 		// call go to pose function in a thread
-		std::thread go_to_pose_thread = std::thread(&jsp::go_to_pose, this, std::ref(controller), std::ref(current_goal));
+		std::thread go_to_pose_thread = std::thread(&Planner::go_to_pose, this, std::ref(controller), std::ref(current_goal));
 		go_to_pose_thread.join(); 
 
 		RCLCPP_INFO(this->get_logger(), "New goal set");
@@ -225,7 +225,7 @@ void jsp::follow_position(OffboardControl& controller, std::vector<std::array<fl
 /**
  * @brief makes the drone goes to the given position
 */
-void jsp::go_to_pose(OffboardControl& controller, std::array<float,3> goal_pose)
+void Planner::go_to_pose(OffboardControl& controller, std::array<float,3> goal_pose)
 {
 	std::array<float,3> current_pose;
 
@@ -260,12 +260,12 @@ void jsp::go_to_pose(OffboardControl& controller, std::array<float,3> goal_pose)
 /**
  * @brief go back to initial position 
 */
-void jsp::go_back(OffboardControl& controller, std::array<float,3> home_pose)
+void Planner::go_back(OffboardControl& controller, std::array<float,3> home_pose)
 {
 	RCLCPP_INFO(this->get_logger(), "Go back to home position");	
 	
 	// call go to pose function in a thread, 
-	std::thread go_to_pose_thread = std::thread(&jsp::go_to_pose, this, std::ref(controller), std::ref(home_pose));
+	std::thread go_to_pose_thread = std::thread(&Planner::go_to_pose, this, std::ref(controller), std::ref(home_pose));
 	go_to_pose_thread.join(); 
 
 	RCLCPP_INFO(this->get_logger(), "Back to home position");
@@ -283,9 +283,9 @@ void jsp::go_back(OffboardControl& controller, std::array<float,3> home_pose)
 
 int main(int argc, char *argv[])
 {
-	std::cout << "Starting jsp node" << std::endl;
+	std::cout << "Starting Planner node" << std::endl;
 	rclcpp::init(argc, argv);
-	rclcpp::spin(std::make_shared<jsp>());
+	rclcpp::spin(std::make_shared<Planner>());
 	// rclcpp::shutdown();
 	return 0;
 }

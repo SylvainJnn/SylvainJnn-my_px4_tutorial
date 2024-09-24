@@ -1,21 +1,21 @@
-#ifndef JSP_HPP
-#define JSP_HPP
+#ifndef PLANNER_HPP
+#define PLANNER_HPP
 
 #include <stdint.h>
 #include <rclcpp/rclcpp.hpp>
 #include <px4_msgs/msg/vehicle_odometry.hpp>
 #include "my_px4_tutorial/OffboardControl.hpp"
-#include "my_px4_tutorial/jsp.hpp"
+#include "my_px4_tutorial/Planner.hpp"
 
 #include <vector>
 #include <array>
 
 
-class jsp : public rclcpp::Node
+class Planner : public rclcpp::Node
 {
 public:
-    jsp();
-    ~jsp();
+    Planner();
+    ~Planner();
 
     void take_off(OffboardControl& controller);
     void square_hardcoded(OffboardControl& controller);
@@ -39,4 +39,4 @@ private:
     px4_msgs::msg::VehicleOdometry::SharedPtr current_odom_msg{};
 };
 
-#endif // JSP_HPP
+#endif // PLANNER_HPP
