@@ -56,13 +56,13 @@ ament_target_dependencies(test_offboard rclcpp px4_msgs std_srvs)
 
 
 
-# Add executable for jsp
-add_executable(jsp src/jsp.cpp)
+# Add executable for Planner
+add_executable(planner src/Planner.cpp)
 # Lier la bibliothèque OffboardControl_lib à l'exécutable jsp_node
-target_link_libraries(jsp
+target_link_libraries(planner
   OffboardControl_lib
 )
-ament_target_dependencies(jsp rclcpp px4_msgs)
+ament_target_dependencies(planner rclcpp px4_msgs)
 # install(TARGETS jsp DESTINATION lib/${PROJECT_NAME}) // elle y est en double non ? 
 
 
@@ -70,7 +70,7 @@ ament_target_dependencies(jsp rclcpp px4_msgs)
 install(TARGETS
   test_offboard
   OffboardControl_lib
-  jsp
+  planner
   DESTINATION lib/${PROJECT_NAME}
 )
 
