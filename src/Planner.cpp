@@ -21,13 +21,13 @@ using namespace std::chrono_literals;
 Planner::Planner() : Node("planner_node")
 {
 	std::cout << "start planner node" << std::endl;
-	flag_odom_sub_ = 0;
+	_flag_odom_sub = 0;
 
 	// Setup QoS and subscriber
 	rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
 	rclcpp::QoS qos = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 5), qos_profile); // originalement 5
 
-	vehicle_odometry_subscriber_ = this->create_subscription<px4_msgs::msg::VehicleOdometry>(
+	_vehicle_odometry_subscriber = this->create_subscription<px4_msgs::msg::VehicleOdometry>(
 		"/fmu/out/vehicle_odometry", 
 		qos, 
 		std::bind(&Planner::vehicle_odometry_callback, 
@@ -35,7 +35,7 @@ Planner::Planner() : Node("planner_node")
 		          std::placeholders::_1));
 
 	// wait to receive a first message
-	while(!flag_odom_sub_)
+	while(!_flag_odom_sub)
 	{
 		rclcpp::spin_some(this->get_node_base_interface());
 		RCLCPP_INFO(this->get_logger(), "No sub yet");
@@ -43,7 +43,7 @@ Planner::Planner() : Node("planner_node")
 
 	setup(_controller);
 
-	follow_position(_controller, goal_poses_);
+	follow_position(_controller, _goal_poses);
 
 	go_back(_controller, _initial_pose);
 
@@ -60,12 +60,12 @@ Planner::~Planner()
 
 void Planner::vehicle_odometry_callback(const px4_msgs::msg::VehicleOdometry::SharedPtr odom_msg)
 {
-	current_odom_msg = odom_msg;
-	flag_odom_sub_ = 1;
+	_current_odom_msg = odom_msg;
+	_flag_odom_sub = 1;
 	// std::cout << "POSITION : " << std::endl;
-	// std::cout << "x : " << current_odom_msg->position[0] << std::endl;
-	// std::cout << "y : " << current_odom_msg->position[1] << std::endl;
-	// std::cout << "z : " << current_odom_msg->position[2] << std::endl;
+	// std::cout << "x : " << _current_odom_msg->position[0] << std::endl;
+	// std::cout << "y : " << _current_odom_msg->position[1] << std::endl;
+	// std::cout << "z : " << _current_odom_msg->position[2] << std::endl;
 }
 
 /**
@@ -73,14 +73,14 @@ void Planner::vehicle_odometry_callback(const px4_msgs::msg::VehicleOdometry::Sh
 */
 void Planner::setup(OffboardControl& controller) // mettre const pour protéger ? 
 {
-	_initial_pose = {current_odom_msg->position[0],
-					 current_odom_msg->position[1],
-					 current_odom_msg->position[2]};
+	_initial_pose = {_current_odom_msg->position[0],
+					 _current_odom_msg->position[1],
+					 _current_odom_msg->position[2]};
 
-	goal_poses_.push_back({1,1,-5});
-	goal_poses_.push_back({2,-2,-5});
-	goal_poses_.push_back({5,3,-10});
-	goal_poses_.push_back({12,-4,-8});
+	_goal_poses.push_back({1,1,-5});
+	_goal_poses.push_back({2,-2,-5});
+	_goal_poses.push_back({5,3,-10});
+	_goal_poses.push_back({12,-4,-8});
 
 	controller.publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 6);
 	
@@ -136,7 +136,7 @@ void Planner::square_hardcoded(OffboardControl& controller)
 	int length = 5;
 
 	// get the initial position pose when this function is launched from subscriber
-	px4_msgs::msg::VehicleOdometry::SharedPtr initial_pose = this->current_odom_msg;
+	px4_msgs::msg::VehicleOdometry::SharedPtr initial_pose = _current_odom_msg;
 	int x0 = initial_pose->position[0];
 	int y0 = initial_pose->position[1];
 
@@ -206,6 +206,7 @@ void Planner::follow_position(OffboardControl& controller, std::vector<std::arra
 	int counter = 1;
 	while(!goal_poses.empty())
 	{
+		// current goal is the first element in goal_poses
 		current_goal = goal_poses[0];
 		std::cout << "Current goal (number " << counter++ << ") :" << current_goal[0] << " " << current_goal[1]<< " " << current_goal[2] << std::endl;
 
@@ -216,6 +217,7 @@ void Planner::follow_position(OffboardControl& controller, std::vector<std::arra
 		RCLCPP_INFO(this->get_logger(), "New goal set");
 		std::cout << "New goal: "<< current_goal[0] << " " << current_goal[1]<< " " << current_goal[2] << std::endl;
 
+		// once the goal reached, erased the first element
 		goal_poses.erase(goal_poses.begin());
 		
     }
@@ -232,16 +234,16 @@ void Planner::go_to_pose(OffboardControl& controller, std::array<float,3> goal_p
 	goal_pose[2] = -5; // set an accesible height position.
 
 	// get current position
-	current_pose = {current_odom_msg->position[0],
-					current_odom_msg->position[1],
-					current_odom_msg->position[2]};
+	current_pose = {_current_odom_msg->position[0],
+					_current_odom_msg->position[1],
+					_current_odom_msg->position[2]};
 
 	while(!is_goal_reached(current_pose, goal_pose, 0.5))
 	{
 		// get current position
-		current_pose = {current_odom_msg->position[0],
-						current_odom_msg->position[1],
-						current_odom_msg->position[2]};
+		current_pose = {_current_odom_msg->position[0],
+						_current_odom_msg->position[1],
+						_current_odom_msg->position[2]};
 
 		// control the drone on position
 		controller.publish_offboard_control_mode(true, false); // must be published regulary
@@ -293,16 +295,7 @@ int main(int argc, char *argv[])
 
 
 /*
-y	vecteur foloow poisiton
-y	change jsp to another name
-y	handle thread
-y	get initial position
-y	go back init position
 
-	refaire un espèce de go to qui verfie en temps réel si la positions est reached
-		do a go to pose in off baord control 
-		or we do it here, we change or function accordlingly 
-		and we still create go back pose ? 
 	faire le control en vitesse
 
 */

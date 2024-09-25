@@ -31,12 +31,12 @@ private:
 
     OffboardControl _controller; 
     std::array<float,3> _initial_pose; // contains the inital drone position when the node starts
-    std::vector<std::array<float,3>> goal_poses_; // contains all th position to be reached
-    int flag_odom_sub_;
+    std::vector<std::array<float,3>> _goal_poses; // contains all th position to be reached
+    int _flag_odom_sub;
 
     // Subscribers
-    rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr vehicle_odometry_subscriber_;
-    px4_msgs::msg::VehicleOdometry::SharedPtr current_odom_msg{};
+    rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr _vehicle_odometry_subscriber;
+    px4_msgs::msg::VehicleOdometry::SharedPtr _current_odom_msg{};
 };
 
 #endif // PLANNER_HPP
